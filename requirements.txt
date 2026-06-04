@@ -1,4 +1,8 @@
 streamlit
-agno
 groq
 python-dotenv
+firecrawl-py
+langchain
+langchain-community
+langchain-groq
+langgraph
