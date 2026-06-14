@@ -132,7 +132,7 @@ def validate_results_with_llm(results: List[Dict[str, Any]], company_name: str, 
     else:
         try:
             llm = ChatGroq(
-                model="llama-3.1-8b-instant",
+                model="llama-3.3-70b-versatile",
                 temperature=0,
                 api_key=key,
                 model_kwargs={"response_format": {"type": "json_object"}}

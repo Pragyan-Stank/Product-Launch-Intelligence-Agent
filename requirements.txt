@@ -1,7 +1,7 @@
 streamlit
 groq
 python-dotenv
-firecrawl-py
+firecrawl
 langchain
 langchain-community
 langchain-groq

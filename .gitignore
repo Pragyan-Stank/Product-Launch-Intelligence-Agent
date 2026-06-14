@@ -4,3 +4,10 @@ venv/
 agents/__pycache__
 graph/__pycache__
 tools/__pycache__
+
+outputs/
+
+tests/
+
+scratch
+

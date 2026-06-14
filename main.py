@@ -71,6 +71,42 @@ with col2:
 
 st.divider()
 
+# Initialize Search Cache in Streamlit session state if not already done
+if "search_cache" not in st.session_state:
+    st.session_state["search_cache"] = {}
+
+# Helper to render the validation report in detail
+def render_validation_expander(response_dict):
+    if not response_dict:
+        st.info("No logs available.")
+        return
+        
+    queries = response_dict.get("search_queries", [])
+    retry_count = response_dict.get("retry_count", 0)
+    data_sufficient = response_dict.get("data_sufficient", True)
+    critic_feedback = response_dict.get("critic_feedback")
+    revision_count = response_dict.get("revision_count", 0)
+    
+    st.markdown("### 📋 Execution Metadata")
+    cols = st.columns(4)
+    with cols[0]:
+        st.metric("Retries Done", f"{retry_count} / 2")
+    with cols[1]:
+        st.metric("Data Sufficient", "Yes" if data_sufficient else "No")
+    with cols[2]:
+        st.metric("Revisions Made", f"{revision_count} / 1")
+    with cols[3]:
+        st.metric("Total Queries", len(queries))
+        
+    st.markdown(f"**Search Queries Used:** {', '.join([f'`{q}`' for q in queries]) if queries else '*None Generated*'}")
+    
+    if critic_feedback:
+        st.warning(f"⚠️ **Critic Feedback:** {critic_feedback}")
+        
+    st.divider()
+    st.markdown("### 🛡️ Validation Logs")
+    st.markdown(response_dict.get("validation_status", "No validation logs available."))
+
 # Helper to run the LangGraph pipeline
 def run_pipeline(analysis_type: str) -> dict:
     if not keys_ready:
@@ -85,11 +121,24 @@ def run_pipeline(analysis_type: str) -> dict:
         "raw_bullets": None,
         "final_report": None,
         "validation_status": None,
+        "retry_count": 0,
+        "data_sufficient": True,
+        "search_queries": [],
+        "validation_summary": None,
+        "critic_feedback": None,
+        "revision_count": 0,
+        "needs_retry": False,
+        "critic_passes": True
     }
     result = graph_app.invoke(state)
     return {
         "final_report": result.get("final_report", "No report generated."),
-        "validation_status": result.get("validation_status", "No validation logs available.")
+        "validation_status": result.get("validation_status", "No validation logs available."),
+        "search_queries": result.get("search_queries", []),
+        "retry_count": result.get("retry_count", 0),
+        "data_sufficient": result.get("data_sufficient", True),
+        "critic_feedback": result.get("critic_feedback", None),
+        "revision_count": result.get("revision_count", 0)
     }
 
 # Tabs
@@ -129,7 +178,7 @@ with tabs[0]:
         if st.session_state.competitor_response:
             st.divider()
             with st.expander("🛡️ Scraped Data Validation Report", expanded=True):
-                st.markdown(st.session_state.competitor_response.get("validation_status", "No validation logs available."))
+                render_validation_expander(st.session_state.competitor_response)
             st.divider()
             st.markdown(st.session_state.competitor_response.get("final_report"))
 
@@ -167,7 +216,7 @@ with tabs[1]:
         if st.session_state.sentiment_response:
             st.divider()
             with st.expander("🛡️ Scraped Data Validation Report", expanded=True):
-                st.markdown(st.session_state.sentiment_response.get("validation_status", "No validation logs available."))
+                render_validation_expander(st.session_state.sentiment_response)
             st.divider()
             st.markdown(st.session_state.sentiment_response.get("final_report"))
 
@@ -205,7 +254,7 @@ with tabs[2]:
         if st.session_state.metrics_response:
             st.divider()
             with st.expander("🛡️ Scraped Data Validation Report", expanded=True):
-                st.markdown(st.session_state.metrics_response.get("validation_status", "No validation logs available."))
+                render_validation_expander(st.session_state.metrics_response)
             st.divider()
             st.markdown(st.session_state.metrics_response.get("final_report"))
 

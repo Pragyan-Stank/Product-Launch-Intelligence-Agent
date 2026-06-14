@@ -2,7 +2,30 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from textwrap import dedent
 
-def run_report_builder(bullet_text: str, company_name: str, analysis_type: str) -> str:
+def run_report_builder(
+    bullet_text: str,
+    company_name: str,
+    analysis_type: str,
+    data_sufficient: bool = True,
+    critic_feedback: str = None
+) -> str:
+    # Build warnings/revisions if applicable
+    insufficient_warning = ""
+    if not data_sufficient:
+        insufficient_warning = dedent(f"""
+            
+            CRITICAL WARNING: The data search results were insufficient. You MUST explicitly and clearly state at the very beginning of the report (e.g. in a clear warning block/callout) that public information for {company_name} was limited/unavailable and that this report reflects partial or no data. Do NOT fabricate data or details to fill in gaps.
+        """)
+        
+    revision_instruction = ""
+    if critic_feedback:
+        revision_instruction = dedent(f"""
+            
+            CRITICAL REVISION INSTRUCTION:
+            Your previous draft was rejected. You MUST revise the report to address the following feedback from the critic:
+            {critic_feedback}
+        """)
+
     if analysis_type == "competitor":
         system_prompt = dedent(f"""
             You are a senior GTM strategist.
@@ -81,6 +104,9 @@ def run_report_builder(bullet_text: str, company_name: str, analysis_type: str) 
         human_prompt = f"KPI Bullets:\n{bullet_text}"
     else:
         raise ValueError(f"Unknown analysis type: {analysis_type}")
+        
+    # Append any dynamic instructions to system_prompt
+    system_prompt += insufficient_warning + revision_instruction
         
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
