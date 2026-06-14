@@ -62,8 +62,9 @@ col1, col2 = st.columns([3, 1])
 with col1:
     company_name = st.text_input(
         label="Company Name",
-        placeholder="e.g. OpenAI, Tesla, Spotify",
-        label_visibility="collapsed"
+        placeholder="e.g. OpenAI, Tesla, Spotify, Louis Vuitton — enter a company or brand name",
+        label_visibility="collapsed",
+        help="Enter a company, startup, product brand, or enterprise name. \n\nThis tool is not designed for individual people or public figures.\n\n✅ Valid: 'Anthropic', 'Notion', 'Versace', 'Ford'\n❌ Invalid: 'Elon Musk', 'Taylor Swift', 'Narendra Modi'\n⚠️ Ambiguous: Try 'SpaceX' instead of 'Elon Musk\\'s SpaceX' — the system will auto-correct this"
     )
 with col2:
     if company_name:
@@ -107,6 +108,21 @@ def render_validation_expander(response_dict):
     st.markdown("### 🛡️ Validation Logs")
     st.markdown(response_dict.get("validation_status", "No validation logs available."))
 
+# Helper to render the validation status and final report or validation error block
+def render_response_block(res):
+    if not res:
+        return
+    if res.get("abort_reason"):
+        st.error(f"⛔ Invalid input: {res['abort_reason']}")
+    else:
+        if res.get("resolved_company_name"):
+            st.info(f"ℹ️ Input interpreted as: **{res['resolved_company_name']}**")
+        st.divider()
+        with st.expander("🛡️ Scraped Data Validation Report", expanded=True):
+            render_validation_expander(res)
+        st.divider()
+        st.markdown(res.get("final_report"))
+
 # Helper to run the LangGraph pipeline
 def run_pipeline(analysis_type: str) -> dict:
     if not keys_ready:
@@ -128,8 +144,12 @@ def run_pipeline(analysis_type: str) -> dict:
         "critic_feedback": None,
         "revision_count": 0,
         "needs_retry": False,
-        "critic_passes": True
-    }
+        "critic_passes": True,
+        "entity_valid": None,
+        "abort_reason": None,
+        "entity_type": None,
+        "resolved_company_name": None
+     }
     result = graph_app.invoke(state)
     return {
         "final_report": result.get("final_report", "No report generated."),
@@ -138,7 +158,9 @@ def run_pipeline(analysis_type: str) -> dict:
         "retry_count": result.get("retry_count", 0),
         "data_sufficient": result.get("data_sufficient", True),
         "critic_feedback": result.get("critic_feedback", None),
-        "revision_count": result.get("revision_count", 0)
+        "revision_count": result.get("revision_count", 0),
+        "abort_reason": result.get("abort_reason", None),
+        "resolved_company_name": result.get("resolved_company_name", None)
     }
 
 # Tabs
@@ -176,11 +198,7 @@ with tabs[0]:
                     st.error(f"❌ Error: {e}")
 
         if st.session_state.competitor_response:
-            st.divider()
-            with st.expander("🛡️ Scraped Data Validation Report", expanded=True):
-                render_validation_expander(st.session_state.competitor_response)
-            st.divider()
-            st.markdown(st.session_state.competitor_response.get("final_report"))
+            render_response_block(st.session_state.competitor_response)
 
 # ---- Market Sentiment ----
 with tabs[1]:
@@ -214,11 +232,7 @@ with tabs[1]:
                     st.error(f"❌ Error: {e}")
 
         if st.session_state.sentiment_response:
-            st.divider()
-            with st.expander("🛡️ Scraped Data Validation Report", expanded=True):
-                render_validation_expander(st.session_state.sentiment_response)
-            st.divider()
-            st.markdown(st.session_state.sentiment_response.get("final_report"))
+            render_response_block(st.session_state.sentiment_response)
 
 # ---- Launch Metrics ----
 with tabs[2]:
@@ -252,11 +266,7 @@ with tabs[2]:
                     st.error(f"❌ Error: {e}")
 
         if st.session_state.metrics_response:
-            st.divider()
-            with st.expander("🛡️ Scraped Data Validation Report", expanded=True):
-                render_validation_expander(st.session_state.metrics_response)
-            st.divider()
-            st.markdown(st.session_state.metrics_response.get("final_report"))
+            render_response_block(st.session_state.metrics_response)
 
 # ---------------- Sidebar: Status ----------------
 st.sidebar.divider()

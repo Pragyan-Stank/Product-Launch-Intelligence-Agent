@@ -14,4 +14,8 @@ class AgentState(TypedDict):
     revision_count: Optional[int]
     needs_retry: Optional[bool]
     critic_passes: Optional[bool]
+    entity_valid: Optional[bool]
+    abort_reason: Optional[str]
+    entity_type: Optional[str]
+    resolved_company_name: Optional[str]
 

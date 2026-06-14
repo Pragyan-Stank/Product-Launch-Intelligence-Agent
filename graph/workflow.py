@@ -8,6 +8,7 @@ from agents.sentiment_analyst import run_sentiment_analyst
 from agents.metrics_analyst import run_metrics_analyst
 from agents.report_builder import run_report_builder
 from agents.critic import run_critic
+from agents.entity_validator import run_entity_validator
 import streamlit as st
 from datetime import date
 from typing import Optional, List
@@ -132,6 +133,40 @@ def run_analyst_node(state: AgentState, analysis_type: str, analyst_runner_fn: c
         }
 
 # ---- Node Functions ----
+def entity_validator_node(state: AgentState) -> dict:
+    """
+    Validates input entity to ensure it represents a company/brand.
+    Handles ambiguous entities by resolving to the company name,
+    and flags invalid entities for aborting the pipeline.
+    """
+    company = state["company_name"]
+    result = run_entity_validator(company)
+    
+    is_valid = result.get("is_valid", True)
+    entity_type = result.get("entity_type", "company")
+    reason = result.get("reason", "")
+    suggested_correction = result.get("suggested_correction")
+    
+    if entity_type == "ambiguous" and suggested_correction:
+        # Accept the correction, overwrite company_name, and report resolved_company_name
+        return {
+            "entity_valid": True,
+            "entity_type": entity_type,
+            "company_name": suggested_correction,
+            "resolved_company_name": suggested_correction
+        }
+    elif not is_valid:
+        return {
+            "entity_valid": False,
+            "entity_type": entity_type,
+            "abort_reason": reason
+        }
+    else:
+        return {
+            "entity_valid": True,
+            "entity_type": entity_type
+        }
+
 def launch_analyst_node(state: AgentState) -> dict:
     return run_analyst_node(state, "competitor", run_launch_analyst)
 
@@ -219,23 +254,36 @@ def critic_router(state: AgentState) -> str:
         return "report_builder"
     return "end"
 
+# Entity validator routing function
+def entity_validation_router(state: AgentState) -> str:
+    if state.get("entity_valid"):
+        # Route to original router logic to determine analyst node
+        return router(state)
+    return "end"
+
 # ---- Build Graph ----
 workflow = StateGraph(AgentState)
 
 # Add nodes
+workflow.add_node("entity_validator", entity_validator_node)
 workflow.add_node("launch_analyst", launch_analyst_node)
 workflow.add_node("sentiment_analyst", sentiment_analyst_node)
 workflow.add_node("metrics_analyst", metrics_analyst_node)
 workflow.add_node("report_builder", report_builder_node)
 workflow.add_node("critic", critic_node)
 
-# Add conditional entry point
-workflow.set_conditional_entry_point(
-    router,
+# Set entry point to entity validator
+workflow.set_entry_point("entity_validator")
+
+# Connect entity validator conditionally
+workflow.add_conditional_edges(
+    "entity_validator",
+    entity_validation_router,
     {
         "launch_analyst": "launch_analyst",
         "sentiment_analyst": "sentiment_analyst",
-        "metrics_analyst": "metrics_analyst"
+        "metrics_analyst": "metrics_analyst",
+        "end": END
     }
 )
 
@@ -280,4 +328,5 @@ workflow.add_conditional_edges(
 
 # Compile graph
 app = workflow.compile()
+
 
