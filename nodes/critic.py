@@ -42,7 +42,7 @@ def run_critic(final_report: str, analysis_type: str, data_sufficient: bool, api
         
     try:
         llm = ChatGroq(
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
             temperature=0,
             api_key=key,
             model_kwargs={"response_format": {"type": "json_object"}}

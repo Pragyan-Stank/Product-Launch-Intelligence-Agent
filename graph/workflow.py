@@ -3,12 +3,12 @@ from graph.state import AgentState
 from tools.search import search_firecrawl
 from tools.validate import validate_search_results
 from tools.query_generator import generate_queries
-from agents.launch_analyst import run_launch_analyst
-from agents.sentiment_analyst import run_sentiment_analyst
-from agents.metrics_analyst import run_metrics_analyst
-from agents.report_builder import run_report_builder
-from agents.critic import run_critic
-from agents.entity_validator import run_entity_validator
+from nodes.launch_analyst import run_launch_analyst
+from nodes.sentiment_analyst import run_sentiment_analyst
+from nodes.metrics_analyst import run_metrics_analyst
+from nodes.report_builder import run_report_builder
+from nodes.critic import run_critic
+from nodes.entity_validator import run_entity_validator
 import streamlit as st
 from datetime import date
 from typing import Optional, List

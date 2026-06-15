@@ -78,7 +78,7 @@ graph TD
 ## 📂 Project Structure
 
 ```
-├── agents/
+├── nodes/
 │   ├── entity_validator.py     # LLM input guardrail and correction agent
 │   ├── launch_analyst.py       # Competitor analyst agent
 │   ├── sentiment_analyst.py    # Sentiment analyst agent

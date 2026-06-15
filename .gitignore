@@ -1,7 +1,7 @@
 venv/
 .env
 
-agents/__pycache__
+nodes/__pycache__
 graph/__pycache__
 tools/__pycache__
 
